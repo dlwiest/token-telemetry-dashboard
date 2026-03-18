@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="theme-color" content="#1c1c1c" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>TOKEN_TELEMETRY</title>
+    <style>
+      /* Kiosk mode: prevent all touch UI artifacts */
+      html, body {
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: none;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
