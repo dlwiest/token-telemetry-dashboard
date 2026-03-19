@@ -111,16 +111,23 @@ async function fetchUsage(accessToken: string): Promise<Response> {
 }
 
 let lastGoodResult: ProviderData | null = null;
+let lastGoodResultAt = 0;
 let rateLimitedUntil = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes — stop serving stale data after this
 
 function status(utilization: number): "nominal" | "throttled" {
   return utilization >= 80 ? "throttled" : "nominal";
 }
 
+function getCachedResult(): ProviderData | null {
+  if (!lastGoodResult) return null;
+  if (Date.now() - lastGoodResultAt > CACHE_TTL) return null;
+  return { ...lastGoodResult, error: "Using cached data — rate limited" };
+}
+
 export async function fetchClaude(): Promise<ProviderData> {
   if (Date.now() < rateLimitedUntil) {
-    if (lastGoodResult) return { ...lastGoodResult, error: "Using cached data — rate limited" };
-    return {
+    return getCachedResult() ?? {
       id: "claude", name: "CLAUDE_CODE", color: "claude",
       status: "offline", quotas: [], error: "Rate limited — backing off",
     };
@@ -144,10 +151,10 @@ export async function fetchClaude(): Promise<ProviderData> {
   }
 
   if (res.status === 429) {
-    const retryAfter = parseInt(res.headers.get("retry-after") || "300", 10);
+    const parsed = parseInt(res.headers.get("retry-after") || "300", 10);
+    const retryAfter = Number.isFinite(parsed) ? parsed : 300;
     rateLimitedUntil = Date.now() + Math.max(retryAfter, 300) * 1000;
-    if (lastGoodResult) return { ...lastGoodResult, error: "Using cached data — rate limited" };
-    return {
+    return getCachedResult() ?? {
       id: "claude", name: "CLAUDE_CODE", color: "claude",
       status: "offline", quotas: [],
       error: `Rate limited — retrying in ${Math.ceil(Math.max(retryAfter, 60) / 60)}m`,
@@ -174,6 +181,7 @@ export async function fetchClaude(): Promise<ProviderData> {
   };
 
   lastGoodResult = result;
+  lastGoodResultAt = Date.now();
   rateLimitedUntil = 0;
   return result;
 }
